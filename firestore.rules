@@ -1,0 +1,113 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helpers ----
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function mySchoolId() {
+      return myProfile().schoolId;
+    }
+
+    function myRole() {
+      return myProfile().role;
+    }
+
+    function isSameSchool(schoolId) {
+      return isSignedIn() && mySchoolId() == schoolId;
+    }
+
+    function isAdmin(schoolId) {
+      return isSameSchool(schoolId) && myRole() in ['admin', 'superadmin'];
+    }
+
+    function isTeacher(schoolId) {
+      return isSameSchool(schoolId) && myRole() == 'teacher';
+    }
+
+    function isStudent(schoolId) {
+      return isSameSchool(schoolId) && myRole() == 'student';
+    }
+
+    // ---- users: a user can read/update only their own profile.
+    // Role/schoolId fields are set by a trusted backend (Cloud Function)
+    // during the roster-verified signup, never editable by the client. ----
+    match /users/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if false;   // created only via Cloud Function (roster check)
+      allow update: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.schoolId == resource.data.schoolId
+                    && request.resource.data.get('admissionNo', null) == resource.data.get('admissionNo', null)
+                    && request.resource.data.get('classIds', null) == resource.data.get('classIds', null);
+      allow delete: if false;
+    }
+
+    // ---- schools: readable by anyone signed into that school; only
+    // admins of that same school can edit its settings/branding. ----
+    match /schools/{schoolId} {
+      allow read: if isSameSchool(schoolId);
+      allow write: if isAdmin(schoolId);
+
+      // ---- roster_students: admins manage the roster. A student may
+      // read only the single roster record that matches their own
+      // claimed uid (needed for profile display), never the whole list. ----
+      match /roster_students/{admissionNo} {
+        allow read: if isAdmin(schoolId)
+                    || isTeacher(schoolId)
+                    || (isStudent(schoolId) && resource.data.claimedByUid == request.auth.uid);
+        allow write: if isAdmin(schoolId);
+      }
+
+      match /roster_teachers/{staffId} {
+        allow read: if isAdmin(schoolId)
+                    || (isTeacher(schoolId) && resource.data.claimedByUid == request.auth.uid);
+        allow write: if isAdmin(schoolId);
+      }
+
+      match /classes/{classId} {
+        allow read: if isSameSchool(schoolId);
+        allow write: if isAdmin(schoolId);
+      }
+
+      match /subjects/{subjectId} {
+        allow read: if isSameSchool(schoolId);
+        allow write: if isAdmin(schoolId);
+      }
+
+      // ---- results: the core sensitive collection.
+      // - Admins: full access within their school.
+      // - Teachers: can create/edit only rows for classes they are
+      //   assigned to, and only while status is draft/submitted
+      //   (never after publish).
+      // - Students: can read ONLY their own results, and ONLY once
+      //   published. They can never write. ----
+      match /results/{resultId} {
+        allow read: if isAdmin(schoolId)
+                    || isTeacher(schoolId)
+                    || (isStudent(schoolId)
+                        && resource.data.status == 'published'
+                        && resource.data.studentAdmissionNo == myProfile().admissionNo);
+
+        allow create, update: if isAdmin(schoolId)
+                    || (isTeacher(schoolId)
+                        && resource.data.status != 'published'
+                        && request.resource.data.classId in myProfile().classIds);
+
+        allow delete: if isAdmin(schoolId);
+      }
+
+      match /announcements/{id} {
+        allow read: if isSameSchool(schoolId);
+        allow write: if isAdmin(schoolId);
+      }
+    }
+  }
+}
