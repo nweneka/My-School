@@ -22,6 +22,8 @@ export interface School {
   currentSession: string;
   currentTerm: 1 | 2 | 3;
   plan: 'trial' | 'active' | 'suspended';
+  caWeight?: number;    // percentage, e.g. 40 — defaults to 40/60 if unset
+  examWeight?: number;  // percentage, e.g. 60 — must sum to 100 with caWeight
 }
 
 export interface RosterStudent {

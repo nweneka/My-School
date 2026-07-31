@@ -37,11 +37,16 @@ service cloud.firestore {
     }
 
     // ---- users: a user can read/update only their own profile.
-    // Role/schoolId fields are set by a trusted backend (Cloud Function)
-    // during the roster-verified signup, never editable by the client. ----
+    // Accounts are created either by an admin bulk-generating them for
+    // their own school (student/teacher only — never admin/superadmin,
+    // so this path can't be used to self-promote), or in future by a
+    // trusted backend flow. Role/schoolId are never editable by the
+    // owning user afterward. ----
     match /users/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create: if false;   // created only via Cloud Function (roster check)
+      allow create: if request.auth != null
+                    && isAdmin(request.resource.data.schoolId)
+                    && request.resource.data.role in ['student', 'teacher'];
       allow update: if isSignedIn() && request.auth.uid == uid
                     && request.resource.data.role == resource.data.role
                     && request.resource.data.schoolId == resource.data.schoolId
@@ -50,10 +55,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---- schools: readable by anyone signed into that school; only
-    // admins of that same school can edit its settings/branding. ----
+    // ---- schools: publicly readable (needed for the school picker and
+    // branding on the login page, before anyone is authenticated). Only
+    // admins of that same school can write to it. ----
     match /schools/{schoolId} {
-      allow read: if isSameSchool(schoolId);
+      allow read: if true;
       allow write: if isAdmin(schoolId);
 
       // ---- roster_students: admins manage the roster. A student may

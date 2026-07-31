@@ -21,7 +21,14 @@ currentTerm: 1 | 2 | 3
 subdomain: string | null
 createdAt: timestamp
 plan: "trial" | "active" | "suspended"
+caWeight: number    // percentage, e.g. 40 — configurable per school
+examWeight: number  // percentage, e.g. 60 — must sum to 100 with caWeight
 ```
+Defaults to 40/60 (the common Nigerian/WAEC convention) when unset. Since
+schools sold to will follow different conventions — French-influenced
+"devoirs + composition" vs Nigerian-style CA/Exam — this is configurable
+per school in Settings rather than hardcoded, and is the single source of
+truth `computeAverage()` (src/lib/grading.ts) reads from.
 
 ### `users/{uid}`  (uid == Firebase Auth UID, top-level, one per login account)
 ```
