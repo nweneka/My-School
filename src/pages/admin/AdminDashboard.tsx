@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { LogoutButton } from '../../components/LogoutButton';
 import type { RosterStudent, SchoolClass } from '../../types';
 
 export default function AdminDashboard() {
@@ -38,6 +39,7 @@ export default function AdminDashboard() {
         <Link to="/admin/settings" className="text-white/80 hover:text-white text-sm ml-3">
           Paramètres
         </Link>
+        <LogoutButton className="ml-3" />
       </header>
 
       <div className="p-8">

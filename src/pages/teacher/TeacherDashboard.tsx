@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { LogoutButton } from '../../components/LogoutButton';
 import type { SchoolClass } from '../../types';
 
 export default function TeacherDashboard() {
@@ -17,6 +18,7 @@ export default function TeacherDashboard() {
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <h1 className="text-white font-semibold text-lg">{school?.name ?? 'My School'}</h1>
+        <LogoutButton className="ml-auto" />
       </header>
 
       <div className="p-8">

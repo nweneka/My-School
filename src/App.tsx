@@ -6,6 +6,7 @@ import Login from './pages/auth/Login';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminClasses from './pages/admin/AdminClasses';
 import AdminStudents from './pages/admin/AdminStudents';
+import AdminStudentsImport from './pages/admin/AdminStudentsImport';
 import AdminGenerateAccounts from './pages/admin/AdminGenerateAccounts';
 import AdminGenerateTeacherAccounts from './pages/admin/AdminGenerateTeacherAccounts';
 import AdminTeachers from './pages/admin/AdminTeachers';
@@ -63,6 +64,14 @@ export default function App() {
               element={
                 <RequireRole allow={['admin', 'superadmin']}>
                   <AdminStudents />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/students/import"
+              element={
+                <RequireRole allow={['admin', 'superadmin']}>
+                  <AdminStudentsImport />
                 </RequireRole>
               }
             />

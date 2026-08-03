@@ -64,8 +64,14 @@ export default function AdminStudents() {
         </Link>
         <h1 className="text-white font-semibold text-lg ml-2">Élèves</h1>
         <Link
-          to="/admin/students/generate-accounts"
+          to="/admin/students/import"
           className="text-white/80 hover:text-white text-sm ml-auto"
+        >
+          Importer (Excel) →
+        </Link>
+        <Link
+          to="/admin/students/generate-accounts"
+          className="text-white/80 hover:text-white text-sm ml-4"
         >
           Créer les comptes →
         </Link>
