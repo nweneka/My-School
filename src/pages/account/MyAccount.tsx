@@ -33,7 +33,9 @@ export default function MyAccount() {
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMessage, setEmailMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
-  const canChangeEmail = profile?.role === 'teacher' || profile?.role === 'admin' || profile?.role === 'superadmin';
+  const isStaff = profile?.role === 'teacher' || profile?.role === 'admin' || profile?.role === 'superadmin';
+  const canChangeEmail = isStaff;
+  const canChangePassword = isStaff;
 
   async function reauthenticate(currentPasswordValue: string) {
     const user = auth.currentUser;
@@ -121,54 +123,61 @@ export default function MyAccount() {
       </header>
 
       <div className="p-8 max-w-lg space-y-8">
-        <form onSubmit={handleChangePassword} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-          <h2 className="text-sm font-medium text-slate-700">{t('changePassword')}</h2>
+        {canChangePassword ? (
+          <form onSubmit={handleChangePassword} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+            <h2 className="text-sm font-medium text-slate-700">{t('changePassword')}</h2>
 
-          <div className="space-y-1.5">
-            <label className="text-sm text-slate-600">{t('currentPassword')}</label>
-            <input
-              type="password"
-              required
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm text-slate-600">{t('newPassword')}</label>
-            <input
-              type="password"
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm text-slate-600">{t('confirmNewPassword')}</label>
-            <input
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-slate-600">{t('currentPassword')}</label>
+              <input
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-slate-600">{t('newPassword')}</label>
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-slate-600">{t('confirmNewPassword')}</label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
 
-          {passwordMessage && (
-            <p className={`text-sm ${passwordMessage.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
-              {passwordMessage.text}
-            </p>
-          )}
+            {passwordMessage && (
+              <p className={`text-sm ${passwordMessage.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+                {passwordMessage.text}
+              </p>
+            )}
 
-          <button
-            type="submit"
-            disabled={passwordSaving}
-            className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            {passwordSaving ? t('saving') : t('updatePassword')}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={passwordSaving}
+              className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {passwordSaving ? t('saving') : t('updatePassword')}
+            </button>
+          </form>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h2 className="text-sm font-medium text-slate-700 mb-2">{t('changePassword')}</h2>
+            <p className="text-sm text-slate-500">{t('studentPasswordLocked')}</p>
+          </div>
+        )}
 
         {canChangeEmail && (
           <form onSubmit={handleChangeEmail} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">

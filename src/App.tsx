@@ -16,6 +16,7 @@ import AdminResults from './pages/admin/AdminResults';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherResultsEntry from './pages/teacher/TeacherResultsEntry';
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentBulletin from './pages/student/StudentBulletin';
 import MyAccount from './pages/account/MyAccount';
 
 function Home() {
@@ -145,6 +146,14 @@ export default function App() {
               element={
                 <RequireRole allow={['student']}>
                   <StudentDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/bulletin"
+              element={
+                <RequireRole allow={['student']}>
+                  <StudentBulletin />
                 </RequireRole>
               }
             />
