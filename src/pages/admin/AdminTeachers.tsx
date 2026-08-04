@@ -4,12 +4,14 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { useTranslation } from '../../lib/i18n';
 import type { RosterTeacher, SchoolClass, Subject } from '../../types';
 import { Link } from 'react-router-dom';
 
 export default function AdminTeachers() {
   const { profile } = useAuth();
   const { school } = useSchool();
+  const { t } = useTranslation();
   const { data: teachers, loading } = useSchoolCollection<RosterTeacher>(
     profile?.schoolId,
     'roster_teachers'
@@ -32,7 +34,7 @@ export default function AdminTeachers() {
     e.preventDefault();
     setError(null);
     if (!profile?.schoolId || !staffId.trim() || !fullName.trim()) {
-      setError('Le matricule et le nom sont requis.');
+      setError(t('staffIdNameRequired'));
       return;
     }
     setSubmitting(true);
@@ -43,7 +45,7 @@ export default function AdminTeachers() {
         classIds: selectedClassIds,
         subjectIds: selectedSubjectIds,
         claimedByUid: null,
-        approved: true, // admin is adding them directly, so pre-approved
+        approved: true,
       });
       setStaffId('');
       setFullName('');
@@ -63,14 +65,14 @@ export default function AdminTeachers() {
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <Link to="/admin" className="text-white/80 hover:text-white text-sm">
-          ← Retour
+          {t('back')}
         </Link>
-        <h1 className="text-white font-semibold text-lg ml-2">Enseignants</h1>
+        <h1 className="text-white font-semibold text-lg ml-2">{t('teachers')}</h1>
         <Link
           to="/admin/teachers/generate-accounts"
           className="text-white/80 hover:text-white text-sm ml-auto"
         >
-          Créer les comptes →
+          {t('generateAccounts')}
         </Link>
       </header>
 
@@ -80,24 +82,24 @@ export default function AdminTeachers() {
             <input
               value={staffId}
               onChange={(e) => setStaffId(e.target.value)}
-              placeholder="Matricule"
+              placeholder={t('staffIdLabel')}
               required
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nom complet"
+              placeholder={t('fullName')}
               required
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
 
           <div>
-            <p className="text-xs font-medium text-slate-500 mb-2">Classes assignées</p>
+            <p className="text-xs font-medium text-slate-500 mb-2">{t('assignedClasses')}</p>
             <div className="flex flex-wrap gap-2">
               {classes.length === 0 && (
-                <span className="text-xs text-slate-400">Aucune classe créée pour le moment.</span>
+                <span className="text-xs text-slate-400">{t('noClassesCreatedYet')}</span>
               )}
               {classes.map((c) => (
                 <button
@@ -117,10 +119,10 @@ export default function AdminTeachers() {
           </div>
 
           <div>
-            <p className="text-xs font-medium text-slate-500 mb-2">Matières enseignées</p>
+            <p className="text-xs font-medium text-slate-500 mb-2">{t('subjectsTaught')}</p>
             <div className="flex flex-wrap gap-2">
               {subjects.length === 0 && (
-                <span className="text-xs text-slate-400">Aucune matière créée pour le moment.</span>
+                <span className="text-xs text-slate-400">{t('noSubjectsCreatedYet')}</span>
               )}
               {subjects.map((s) => (
                 <button
@@ -145,32 +147,32 @@ export default function AdminTeachers() {
             disabled={submitting}
             className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            Ajouter l'enseignant
+            {t('addTeacher')}
           </button>
         </form>
 
         <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
-          {loading && <p className="p-5 text-sm text-slate-400">Chargement…</p>}
+          {loading && <p className="p-5 text-sm text-slate-400">{t('loading')}</p>}
           {!loading && teachers.length === 0 && (
-            <p className="p-5 text-sm text-slate-400">Aucun enseignant pour le moment.</p>
+            <p className="p-5 text-sm text-slate-400">{t('noTeachersYet')}</p>
           )}
-          {teachers.map((t) => (
-            <div key={t.staffId} className="p-4 flex items-center justify-between">
+          {teachers.map((teacher) => (
+            <div key={teacher.staffId} className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-900">{t.fullName}</p>
+                <p className="text-sm font-medium text-slate-900">{teacher.fullName}</p>
                 <p className="text-xs text-slate-500">
-                  {t.staffId} ·{' '}
-                  {t.classIds.length > 0
-                    ? t.classIds.map((id) => classNameById[id] ?? id).join(', ')
-                    : 'Aucune classe'}
+                  {teacher.staffId} ·{' '}
+                  {teacher.classIds.length > 0
+                    ? teacher.classIds.map((id) => classNameById[id] ?? id).join(', ')
+                    : t('noClass')}
                 </p>
               </div>
               <span
                 className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  t.claimedByUid ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                  teacher.claimedByUid ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {t.claimedByUid ? 'Compte créé' : 'En attente'}
+                {teacher.claimedByUid ? t('accountCreated') : t('pending')}
               </span>
             </div>
           ))}

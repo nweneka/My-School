@@ -5,6 +5,7 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { useTranslation } from '../../lib/i18n';
 import type { SchoolClass } from '../../types';
 import { Link } from 'react-router-dom';
 
@@ -62,6 +63,7 @@ function parseDate(value: unknown): string | null {
 export default function AdminStudentsImport() {
   const { profile } = useAuth();
   const { school } = useSchool();
+  const { t } = useTranslation();
   const { data: classes } = useSchoolCollection<SchoolClass>(profile?.schoolId, 'classes');
   const classIdByName = Object.fromEntries(
     classes.map((c) => [c.name.trim().toLowerCase(), c.id])
@@ -103,8 +105,7 @@ export default function AdminStudentsImport() {
           dateOfBirth: '',
           className: '',
           classId: null,
-          error:
-            "Colonnes introuvables. Le fichier doit contenir : N° admission, Nom, Date de naissance, Classe.",
+          error: t('missingColumns'),
         },
       ]);
       return;
@@ -118,10 +119,10 @@ export default function AdminStudentsImport() {
       const classId = classIdByName[className.toLowerCase()] ?? null;
 
       let error: string | null = null;
-      if (!admissionNo) error = "N° d'admission manquant.";
-      else if (!fullName) error = 'Nom manquant.';
-      else if (!dateOfBirth) error = 'Date de naissance invalide ou manquante.';
-      else if (!classId) error = `Classe "${className}" introuvable — créez-la d'abord.`;
+      if (!admissionNo) error = t('missingAdmissionNo');
+      else if (!fullName) error = t('missingName');
+      else if (!dateOfBirth) error = t('invalidDob');
+      else if (!classId) error = `${t('classLabel')} "${className}" ${t('classNotFound')}`;
 
       return {
         rowNumber: i + 2, // +2: header row + 1-indexing, matches spreadsheet row numbers
@@ -173,24 +174,23 @@ export default function AdminStudentsImport() {
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <Link to="/admin/students" className="text-white/80 hover:text-white text-sm">
-          ← Retour
+          {t('back')}
         </Link>
-        <h1 className="text-white font-semibold text-lg ml-2">Importer des élèves</h1>
+        <h1 className="text-white font-semibold text-lg ml-2">{t('importStudentsTitle')}</h1>
       </header>
 
       <div className="p-8 max-w-3xl">
         <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
           <p className="text-sm text-slate-700 mb-1">
-            Fichier Excel (.xlsx) ou CSV avec les colonnes :{' '}
-            <span className="font-medium">N° admission, Nom, Date de naissance, Classe</span>
+            {t('importInstructions')}{' '}
+            <span className="font-medium">{t('importColumnsList')}</span>
           </p>
           <p className="text-xs text-slate-500 mb-4">
-            Les classes doivent déjà exister dans l'application (même orthographe).
-            Date de naissance : JJ/MM/AAAA ou AAAA-MM-JJ.
+            {t('importNote')}
           </p>
 
           <label className="inline-block cursor-pointer text-sm font-medium text-slate-900 border border-slate-300 rounded-lg px-4 py-2 hover:bg-slate-50">
-            Choisir un fichier
+            {t('chooseFile')}
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -204,9 +204,9 @@ export default function AdminStudentsImport() {
         {rows.length > 0 && (
           <>
             <div className="flex items-center gap-4 mb-3 text-sm">
-              <span className="text-emerald-700 font-medium">{validRows.length} valide(s)</span>
+              <span className="text-emerald-700 font-medium">{validRows.length} {t('validRows')}</span>
               {errorRows.length > 0 && (
-                <span className="text-red-600 font-medium">{errorRows.length} en erreur</span>
+                <span className="text-red-600 font-medium">{errorRows.length} {t('errorRows')}</span>
               )}
             </div>
 
@@ -233,10 +233,10 @@ export default function AdminStudentsImport() {
               className="mt-4 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
               {imported
-                ? 'Importé ✓'
+                ? t('imported')
                 : importing
-                  ? 'Importation…'
-                  : `Importer ${validRows.length} élève(s)`}
+                  ? t('importing')
+                  : `${t('importButton')} ${validRows.length} ${t('studentsCount')}`}
             </button>
           </>
         )}

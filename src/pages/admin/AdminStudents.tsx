@@ -4,12 +4,14 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { useTranslation } from '../../lib/i18n';
 import type { RosterStudent, SchoolClass } from '../../types';
 import { Link } from 'react-router-dom';
 
 export default function AdminStudents() {
   const { profile } = useAuth();
   const { school } = useSchool();
+  const { t } = useTranslation();
   const { data: students, loading } = useSchoolCollection<RosterStudent>(
     profile?.schoolId,
     'roster_students'
@@ -27,14 +29,11 @@ export default function AdminStudents() {
     e.preventDefault();
     setError(null);
     if (!profile?.schoolId || !admissionNo.trim() || !fullName.trim() || !dateOfBirth || !classId) {
-      setError('Tous les champs sont requis.');
+      setError(t('allFieldsRequired'));
       return;
     }
     setSubmitting(true);
     try {
-      // Document ID = admission number, so admin can never accidentally
-      // create two roster entries with the same admission number —
-      // setDoc here would just overwrite, which is a safe failure mode.
       await setDoc(doc(db, 'schools', profile.schoolId, 'roster_students', admissionNo.trim()), {
         admissionNo: admissionNo.trim(),
         fullName: fullName.trim(),
@@ -60,29 +59,29 @@ export default function AdminStudents() {
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <Link to="/admin" className="text-white/80 hover:text-white text-sm">
-          ← Retour
+          {t('back')}
         </Link>
-        <h1 className="text-white font-semibold text-lg ml-2">Élèves</h1>
+        <h1 className="text-white font-semibold text-lg ml-2">{t('students')}</h1>
         <Link
           to="/admin/students/import"
           className="text-white/80 hover:text-white text-sm ml-auto"
         >
-          Importer (Excel) →
+          {t('importExcel')}
         </Link>
         <Link
           to="/admin/students/generate-accounts"
           className="text-white/80 hover:text-white text-sm ml-4"
         >
-          Créer les comptes →
+          {t('generateAccounts')}
         </Link>
       </header>
 
       <div className="p-8 max-w-3xl">
         {classes.length === 0 && (
           <div className="mb-6 rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
-            Créez d'abord au moins une classe avant d'ajouter des élèves.{' '}
+            {t('createClassFirst')}{' '}
             <Link to="/admin/classes" className="underline font-medium">
-              Aller à Classes
+              {t('goToClasses')}
             </Link>
           </div>
         )}
@@ -92,14 +91,14 @@ export default function AdminStudents() {
             <input
               value={admissionNo}
               onChange={(e) => setAdmissionNo(e.target.value)}
-              placeholder="N° d'admission"
+              placeholder={t('admissionNo')}
               required
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nom complet"
+              placeholder={t('fullName')}
               required
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
@@ -116,7 +115,7 @@ export default function AdminStudents() {
               required
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
-              <option value="">Classe…</option>
+              <option value="">{t('chooseClass')}</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -130,14 +129,14 @@ export default function AdminStudents() {
             disabled={submitting || classes.length === 0}
             className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            Ajouter l'élève
+            {t('addStudent')}
           </button>
         </form>
 
         <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
-          {loading && <p className="p-5 text-sm text-slate-400">Chargement…</p>}
+          {loading && <p className="p-5 text-sm text-slate-400">{t('loading')}</p>}
           {!loading && students.length === 0 && (
-            <p className="p-5 text-sm text-slate-400">Aucun élève pour le moment.</p>
+            <p className="p-5 text-sm text-slate-400">{t('noStudentsYet')}</p>
           )}
           {students.map((s) => (
             <div key={s.admissionNo} className="p-4 flex items-center justify-between">
@@ -154,7 +153,7 @@ export default function AdminStudents() {
                     : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {s.claimedByUid ? 'Compte créé' : 'En attente'}
+                {s.claimedByUid ? t('accountCreated') : t('pending')}
               </span>
             </div>
           ))}

@@ -6,6 +6,7 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { useTranslation } from '../../lib/i18n';
 import type { RosterTeacher } from '../../types';
 import { Link } from 'react-router-dom';
 
@@ -25,12 +26,13 @@ type RowResult = { staffId: string; status: 'ok' | 'error'; message: string };
 export default function AdminGenerateTeacherAccounts() {
   const { profile } = useAuth();
   const { school } = useSchool();
+  const { t } = useTranslation();
   const { data: teachers } = useSchoolCollection<RosterTeacher>(
     profile?.schoolId,
     'roster_teachers'
   );
 
-  const pending = teachers.filter((t) => !t.claimedByUid);
+  const pending = teachers.filter((teacher) => !teacher.claimedByUid);
 
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -79,14 +81,14 @@ export default function AdminGenerateTeacherAccounts() {
           { claimedByUid: cred.user.uid }
         );
         await tempAuth.signOut();
-        rows.push({ staffId: teacher.staffId, status: 'ok', message: 'Compte créé' });
+        rows.push({ staffId: teacher.staffId, status: 'ok', message: t('accountCreated') });
       } catch (err) {
         const msg =
           err instanceof Error && err.message.includes('auth/too-many-requests')
-            ? 'Limite horaire atteinte (100/heure) — réessayez plus tard'
+            ? t('hourlyLimitReached')
             : err instanceof Error
               ? err.message
-              : 'Erreur inconnue';
+              : t('unknownError');
         rows.push({ staffId: teacher.staffId, status: 'error', message: msg });
       }
       setProgress(i + 1);
@@ -104,28 +106,26 @@ export default function AdminGenerateTeacherAccounts() {
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <Link to="/admin/teachers" className="text-white/80 hover:text-white text-sm">
-          ← Retour
+          {t('back')}
         </Link>
-        <h1 className="text-white font-semibold text-lg ml-2">Créer les comptes enseignants</h1>
+        <h1 className="text-white font-semibold text-lg ml-2">{t('createTeacherAccounts')}</h1>
       </header>
 
       <div className="p-8 max-w-2xl">
         <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
           <p className="text-sm text-slate-700">
-            <span className="font-semibold">{pending.length}</span> enseignant(s) en attente de
-            création de compte sur <span className="font-semibold">{teachers.length}</span> au
-            total.
+            <span className="font-semibold">{pending.length}</span> {t('teachers').toLowerCase()} {t('outOf')}{' '}
+            <span className="font-semibold">{teachers.length}</span> {t('totalLabel')}.
           </p>
           <p className="text-xs text-slate-500 mt-2">
-            Identifiant : matricule. Mot de passe par défaut : ens-[matricule]. Limite : 100
-            comptes par heure.
+            {t('teacherAccountRules')}
           </p>
           <button
             onClick={handleGenerate}
             disabled={running || pending.length === 0}
             className="mt-4 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {running ? `Création… (${progress}/${pending.length})` : 'Créer les comptes'}
+            {running ? `${t('creatingProgress')} (${progress}/${pending.length})` : t('createAccountsButton')}
           </button>
         </div>
 

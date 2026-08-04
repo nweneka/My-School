@@ -3,19 +3,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
 import { LogoutButton } from '../../components/LogoutButton';
+import { useTranslation } from '../../lib/i18n';
 import type { RosterStudent, SchoolClass } from '../../types';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const { school } = useSchool();
+  const { t } = useTranslation();
   const { data: students } = useSchoolCollection<RosterStudent>(profile?.schoolId, 'roster_students');
   const { data: classes } = useSchoolCollection<SchoolClass>(profile?.schoolId, 'classes');
 
   const cards = [
-    { label: 'Élèves', count: students.length, to: '/admin/students' },
-    { label: 'Enseignants', count: '—', to: '/admin/teachers' },
-    { label: 'Classes', count: classes.length, to: '/admin/classes' },
-    { label: 'Résultats', count: '—', to: '/admin/results' },
+    { label: t('students'), count: students.length, to: '/admin/students' },
+    { label: t('teachers'), count: '—', to: '/admin/teachers' },
+    { label: t('classes'), count: classes.length, to: '/admin/classes' },
+    { label: t('results'), count: '—', to: '/admin/results' },
   ];
 
   return (
@@ -37,14 +39,17 @@ export default function AdminDashboard() {
           {school?.currentSession ?? '—'} · T{school?.currentTerm ?? '—'}
         </span>
         <Link to="/admin/settings" className="text-white/80 hover:text-white text-sm ml-3">
-          Paramètres
+          {t('settings')}
+        </Link>
+        <Link to="/account" className="text-white/80 hover:text-white text-sm ml-3">
+          {t('myAccount')}
         </Link>
         <LogoutButton className="ml-3" />
       </header>
 
       <div className="p-8">
-        <h2 className="text-2xl font-semibold text-slate-900">Tableau de bord — Admin</h2>
-        <p className="text-slate-500 mt-1">Bienvenue, {profile?.displayName}</p>
+        <h2 className="text-2xl font-semibold text-slate-900">{t('adminDashboardTitle')}</h2>
+        <p className="text-slate-500 mt-1">{t('welcome')}, {profile?.displayName}</p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
           {cards.map((card) => (

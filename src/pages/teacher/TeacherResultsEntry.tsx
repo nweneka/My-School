@@ -6,6 +6,7 @@ import { computeAverage } from '../../lib/grading';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { useTranslation } from '../../lib/i18n';
 import type { RosterStudent, Subject, ResultEntry } from '../../types';
 
 function sessionSlug(session: string) {
@@ -20,6 +21,7 @@ export default function TeacherResultsEntry() {
   const { classId } = useParams<{ classId: string }>();
   const { profile } = useAuth();
   const { school } = useSchool();
+  const { t } = useTranslation();
 
   const { data: subjects } = useSchoolCollection<Subject>(profile?.schoolId, 'subjects');
   const { data: students, loading: loadingStudents } = useSchoolCollection<RosterStudent>(
@@ -112,9 +114,9 @@ export default function TeacherResultsEntry() {
     setSaving(true);
     try {
       await saveAll('draft');
-      setMessage('Brouillon enregistré.');
+      setMessage(t('draftSaved'));
     } catch {
-      setMessage("Erreur lors de l'enregistrement.");
+      setMessage(t('saveError'));
     } finally {
       setSaving(false);
     }
@@ -125,9 +127,9 @@ export default function TeacherResultsEntry() {
     setSubmitting(true);
     try {
       await saveAll('submitted');
-      setMessage('Notes soumises pour validation par l\'administration.');
+      setMessage(t('submittedForReview'));
     } catch {
-      setMessage('Erreur lors de la soumission.');
+      setMessage(t('submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -140,20 +142,20 @@ export default function TeacherResultsEntry() {
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <Link to="/teacher" className="text-white/80 hover:text-white text-sm">
-          ← Retour
+          {t('back')}
         </Link>
-        <h1 className="text-white font-semibold text-lg ml-2">Saisie des notes</h1>
+        <h1 className="text-white font-semibold text-lg ml-2">{t('scoresEntryTitle')}</h1>
       </header>
 
       <div className="p-8 max-w-3xl">
         <div className="mb-6">
-          <label className="text-sm text-slate-600 block mb-1.5">Matière</label>
+          <label className="text-sm text-slate-600 block mb-1.5">{t('subject')}</label>
           <select
             value={subjectId}
             onChange={(e) => setSubjectId(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
           >
-            <option value="">Choisir une matière…</option>
+            <option value="">{t('chooseSubject')}</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -161,23 +163,23 @@ export default function TeacherResultsEntry() {
             ))}
           </select>
           <p className="text-xs text-slate-400 mt-1">
-            {session ? `${session} · Trimestre ${term}` : 'Session non configurée'}
+            {session ? `${session} · ${t('term')} ${term}` : t('sessionNotConfigured')}
             {' · '}
-            Pondération : CA {school?.caWeight ?? 40}% / Examen {school?.examWeight ?? 60}%
+            {t('weighting')} : {t('ca')} {school?.caWeight ?? 40}% / {t('exam')} {school?.examWeight ?? 60}%
           </p>
         </div>
 
         {anyPublished && (
           <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-            Certaines notes de cette matière sont déjà publiées et ne peuvent plus être modifiées.
+            {t('somePublishedWarning')}
           </div>
         )}
 
         {subjectId && (
           <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
-            {loadingStudents && <p className="p-5 text-sm text-slate-400">Chargement…</p>}
+            {loadingStudents && <p className="p-5 text-sm text-slate-400">{t('loading')}</p>}
             {!loadingStudents && students.length === 0 && (
-              <p className="p-5 text-sm text-slate-400">Aucun élève dans cette classe.</p>
+              <p className="p-5 text-sm text-slate-400">{t('noStudentsInClass')}</p>
             )}
             {students.map((s) => {
               const isPublished = existingStatusByAdmission[s.admissionNo] === 'published';
@@ -189,7 +191,7 @@ export default function TeacherResultsEntry() {
                     min="0"
                     max="20"
                     step="0.5"
-                    placeholder="CA /20"
+                    placeholder={`${t('ca')} /20`}
                     value={scores[s.admissionNo]?.ca ?? ''}
                     onChange={(e) => updateScore(s.admissionNo, 'ca', e.target.value)}
                     disabled={isPublished}
@@ -200,7 +202,7 @@ export default function TeacherResultsEntry() {
                     min="0"
                     max="20"
                     step="0.5"
-                    placeholder="Examen /20"
+                    placeholder={`${t('exam')} /20`}
                     value={scores[s.admissionNo]?.exam ?? ''}
                     onChange={(e) => updateScore(s.admissionNo, 'exam', e.target.value)}
                     disabled={isPublished}
@@ -219,14 +221,14 @@ export default function TeacherResultsEntry() {
               disabled={saving || submitting}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50"
             >
-              {saving ? 'Enregistrement…' : 'Enregistrer le brouillon'}
+              {saving ? t('saving') : t('saveDraft')}
             </button>
             <button
               onClick={handleSubmit}
               disabled={saving || submitting}
               className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {submitting ? 'Soumission…' : "Soumettre à l'administration"}
+              {submitting ? t('submitting') : t('submitToAdmin')}
             </button>
           </div>
         )}

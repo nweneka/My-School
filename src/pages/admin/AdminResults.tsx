@@ -4,12 +4,14 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
+import { useTranslation } from '../../lib/i18n';
 import type { ResultEntry, SchoolClass, Subject } from '../../types';
 import { Link } from 'react-router-dom';
 
 export default function AdminResults() {
   const { profile } = useAuth();
   const { school } = useSchool();
+  const { t } = useTranslation();
   const { data: results, loading } = useSchoolCollection<ResultEntry>(profile?.schoolId, 'results');
   const { data: classes } = useSchoolCollection<SchoolClass>(profile?.schoolId, 'classes');
   const { data: subjects } = useSchoolCollection<Subject>(profile?.schoolId, 'subjects');
@@ -50,16 +52,16 @@ export default function AdminResults() {
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <Link to="/admin" className="text-white/80 hover:text-white text-sm">
-          ← Retour
+          {t('back')}
         </Link>
-        <h1 className="text-white font-semibold text-lg ml-2">Résultats</h1>
+        <h1 className="text-white font-semibold text-lg ml-2">{t('results')}</h1>
       </header>
 
       <div className="p-8 max-w-3xl">
-        {loading && <p className="text-sm text-slate-400">Chargement…</p>}
+        {loading && <p className="text-sm text-slate-400">{t('loading')}</p>}
         {!loading && groups.size === 0 && (
           <p className="text-sm text-slate-400">
-            Aucune note saisie pour le moment. Les enseignants doivent d'abord soumettre leurs notes.
+            {t('noResultsYet')}
           </p>
         )}
 
@@ -80,23 +82,23 @@ export default function AdminResults() {
                       {subjectNameById[first.subjectId] ?? first.subjectId}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {first.session} · Trimestre {first.term} · {entries.length} élève(s)
-                      {hasDrafts && ' · certains en brouillon'}
+                      {first.session} · {t('term')} {first.term} · {entries.length} {t('studentsCount')}
+                      {hasDrafts && ` · ${t('someInDraft')}`}
                     </p>
                   </div>
 
                   {allPublished ? (
                     <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
-                      Publié
+                      {t('published')}
                     </span>
                   ) : (
                     <button
                       onClick={() => handlePublish(key, entries)}
                       disabled={publishing === key || submittedCount === 0}
                       className="rounded-lg bg-slate-900 text-white px-3 py-1.5 text-sm font-medium disabled:opacity-40"
-                      title={submittedCount === 0 ? "En attente de soumission par l'enseignant" : undefined}
+                      title={submittedCount === 0 ? t('awaitingSubmission') : undefined}
                     >
-                      {publishing === key ? 'Publication…' : 'Publier'}
+                      {publishing === key ? t('publishing') : t('publish')}
                     </button>
                   )}
                 </div>

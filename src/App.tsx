@@ -16,6 +16,7 @@ import AdminResults from './pages/admin/AdminResults';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherResultsEntry from './pages/teacher/TeacherResultsEntry';
 import StudentDashboard from './pages/student/StudentDashboard';
+import MyAccount from './pages/account/MyAccount';
 
 function Home() {
   const { profile, loading } = useAuth();
@@ -144,6 +145,14 @@ export default function App() {
               element={
                 <RequireRole allow={['student']}>
                   <StudentDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/account"
+              element={
+                <RequireRole allow={['admin', 'superadmin', 'teacher', 'student']}>
+                  <MyAccount />
                 </RequireRole>
               }
             />
