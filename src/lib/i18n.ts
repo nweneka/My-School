@@ -35,6 +35,23 @@ const dict = {
     fr: 'Identifiants incorrects. Vérifiez votre email et mot de passe.',
     en: 'Incorrect details. Check your email and password.',
   },
+  forgotPassword: { fr: 'Mot de passe oublié ?', en: 'Forgot password?' },
+  resetPasswordTitle: { fr: 'Réinitialiser le mot de passe', en: 'Reset password' },
+  resetPasswordInstructions: {
+    fr: 'Entrez votre email pour recevoir un lien de réinitialisation.',
+    en: 'Enter your email to receive a reset link.',
+  },
+  sendResetLink: { fr: 'Envoyer le lien', en: 'Send link' },
+  sending: { fr: 'Envoi…', en: 'Sending…' },
+  resetLinkSent: {
+    fr: 'Email envoyé. Vérifiez votre boîte de réception (et les spams).',
+    en: 'Email sent. Check your inbox (and spam folder).',
+  },
+  resetLinkError: {
+    fr: "Impossible d'envoyer l'email. Vérifiez l'adresse.",
+    en: 'Could not send the email. Check the address.',
+  },
+  backToLogin: { fr: 'Retour à la connexion', en: 'Back to login' },
 
   // Dashboard cards
   adminDashboardTitle: { fr: 'Tableau de bord — Admin', en: 'Dashboard — Admin' },

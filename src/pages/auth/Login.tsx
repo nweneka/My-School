@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../lib/firebase';
@@ -113,12 +113,72 @@ function StudentLogin({ lang }: { lang: Lang }) {
   );
 }
 
+function ForgotPassword({ lang, onBack }: { lang: Lang; onBack: () => void }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sent' | 'error'>('idle');
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setStatus('sent');
+    } catch {
+      setStatus('error');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-slate-600">{translate('resetPasswordInstructions', lang)}</p>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-700">{translate('email', lang)}</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          />
+        </div>
+
+        {status === 'sent' && (
+          <p className="text-sm text-emerald-600">{translate('resetLinkSent', lang)}</p>
+        )}
+        {status === 'error' && (
+          <p className="text-sm text-red-600">{translate('resetLinkError', lang)}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full rounded-lg bg-slate-900 text-white py-2.5 text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
+        >
+          {submitting ? translate('sending', lang) : translate('sendResetLink', lang)}
+        </button>
+      </form>
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-sm text-slate-500 hover:text-slate-700 underline"
+      >
+        {translate('backToLogin', lang)}
+      </button>
+    </div>
+  );
+}
+
 function StaffLogin({ lang }: { lang: Lang }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,6 +192,10 @@ function StaffLogin({ lang }: { lang: Lang }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (showForgot) {
+    return <ForgotPassword lang={lang} onBack={() => setShowForgot(false)} />;
   }
 
   return (
@@ -148,7 +212,16 @@ function StaffLogin({ lang }: { lang: Lang }) {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-slate-700">{translate('password', lang)}</label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-slate-700">{translate('password', lang)}</label>
+          <button
+            type="button"
+            onClick={() => setShowForgot(true)}
+            className="text-xs text-slate-500 hover:text-slate-700 underline"
+          >
+            {translate('forgotPassword', lang)}
+          </button>
+        </div>
         <input
           type="password"
           required
