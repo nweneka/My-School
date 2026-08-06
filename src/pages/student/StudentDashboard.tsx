@@ -33,7 +33,7 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       <header
-        className="px-8 py-5 flex items-center gap-3"
+        className="px-4 sm:px-8 py-4 sm:py-5 flex flex-wrap items-center gap-2 sm:gap-3"
         style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
       >
         <h1 className="text-white font-semibold text-lg">{school?.name ?? 'My School'}</h1>
