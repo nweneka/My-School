@@ -47,11 +47,20 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && isAdmin(request.resource.data.schoolId)
                     && request.resource.data.role in ['student', 'teacher'];
-      allow update: if isSignedIn() && request.auth.uid == uid
+      allow update: if (isSignedIn() && request.auth.uid == uid
                     && request.resource.data.role == resource.data.role
                     && request.resource.data.schoolId == resource.data.schoolId
                     && request.resource.data.get('admissionNo', null) == resource.data.get('admissionNo', null)
-                    && request.resource.data.get('classIds', null) == resource.data.get('classIds', null);
+                    && request.resource.data.get('classIds', null) == resource.data.get('classIds', null))
+                    // Admins of the same school may update a teacher's own
+                    // profile fields (e.g. classIds) after account creation
+                    // — this is what lets "assign a class later" work once
+                    // a teacher's account already exists. Role/schoolId
+                    // still can't be changed this way.
+                    || (isAdmin(resource.data.schoolId)
+                        && resource.data.role == 'teacher'
+                        && request.resource.data.role == resource.data.role
+                        && request.resource.data.schoolId == resource.data.schoolId);
       allow delete: if false;
     }
 

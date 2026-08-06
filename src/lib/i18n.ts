@@ -114,6 +114,8 @@ const dict = {
   noTeachersYet: { fr: 'Aucun enseignant pour le moment.', en: 'No teachers yet.' },
   noClass: { fr: 'Aucune classe', en: 'No class' },
   subjectsLink: { fr: 'Matières →', en: 'Subjects →' },
+  edit: { fr: 'Modifier', en: 'Edit' },
+  cancel: { fr: 'Annuler', en: 'Cancel' },
 
   // Classes
   classNamePlaceholder: { fr: 'Nom de la classe (ex: 3ème A)', en: 'Class name (e.g. Grade 9A)' },
