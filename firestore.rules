@@ -111,7 +111,17 @@ service cloud.firestore {
                         && resource.data.status == 'published'
                         && resource.data.studentAdmissionNo == myProfile().admissionNo);
 
-        allow create, update: if isAdmin(schoolId)
+        // NOTE: create and update are split on purpose. On create there is
+        // no existing document yet, so checking resource.data (the OLD
+        // doc) would always fail — that was the original bug: it silently
+        // blocked every first-time score entry by a teacher. Create checks
+        // request.resource.data (the NEW doc being written) instead.
+        allow create: if isAdmin(schoolId)
+                    || (isTeacher(schoolId)
+                        && request.resource.data.status != 'published'
+                        && request.resource.data.classId in myProfile().classIds);
+
+        allow update: if isAdmin(schoolId)
                     || (isTeacher(schoolId)
                         && resource.data.status != 'published'
                         && request.resource.data.classId in myProfile().classIds);

@@ -184,8 +184,8 @@ export default function TeacherResultsEntry() {
             {students.map((s) => {
               const isPublished = existingStatusByAdmission[s.admissionNo] === 'published';
               return (
-                <div key={s.admissionNo} className="p-4 flex items-center gap-4">
-                  <span className="flex-1 text-sm text-slate-900">{s.fullName}</span>
+                <div key={s.admissionNo} className="p-4 flex flex-wrap items-center gap-2 sm:gap-4">
+                  <span className="flex-1 min-w-[8rem] text-sm text-slate-900">{s.fullName}</span>
                   <input
                     type="number"
                     min="0"
@@ -195,7 +195,7 @@ export default function TeacherResultsEntry() {
                     value={scores[s.admissionNo]?.ca ?? ''}
                     onChange={(e) => updateScore(s.admissionNo, 'ca', e.target.value)}
                     disabled={isPublished}
-                    className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100"
+                    className="w-20 shrink-0 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100"
                   />
                   <input
                     type="number"
@@ -206,7 +206,7 @@ export default function TeacherResultsEntry() {
                     value={scores[s.admissionNo]?.exam ?? ''}
                     onChange={(e) => updateScore(s.admissionNo, 'exam', e.target.value)}
                     disabled={isPublished}
-                    className="w-24 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100"
+                    className="w-24 shrink-0 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100"
                   />
                 </div>
               );
