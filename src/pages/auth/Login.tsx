@@ -4,6 +4,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../lib/firebase';
 import { translate, type Lang } from '../../lib/i18n';
+import { useAuth } from '../../contexts/AuthContext';
 
 type SchoolOption = { id: string; name: string };
 
@@ -48,7 +49,6 @@ function SchoolSelect({
 }
 
 function StudentLogin({ lang }: { lang: Lang }) {
-  const navigate = useNavigate();
   const [schoolId, setSchoolId] = useState('');
   const [admissionNo, setAdmissionNo] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -67,7 +67,10 @@ function StudentLogin({ lang }: { lang: Lang }) {
       const email = `${admissionNo.trim().toLowerCase()}@${schoolId}.myschool`;
       const password = dateOfBirth.replace(/-/g, '');
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      // Don't navigate here — AuthContext needs a moment to confirm the
+      // new session and load the profile. The top-level Login component
+      // watches for that and redirects once it's actually ready, so we
+      // never redirect on stale (pre-login) auth state.
     } catch {
       setError(translate('studentLoginError', lang));
     } finally {
@@ -173,7 +176,6 @@ function ForgotPassword({ lang, onBack }: { lang: Lang; onBack: () => void }) {
 }
 
 function StaffLogin({ lang }: { lang: Lang }) {
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +188,8 @@ function StaffLogin({ lang }: { lang: Lang }) {
     setSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      // See comment in StudentLogin — navigation happens in the parent
+      // once AuthContext confirms the session, not immediately here.
     } catch {
       setError(translate('staffLoginError', lang));
     } finally {
@@ -247,6 +250,20 @@ function StaffLogin({ lang }: { lang: Lang }) {
 export default function Login() {
   const [tab, setTab] = useState<'student' | 'staff'>('student');
   const [lang, setLang] = useState<Lang>('fr');
+  const { firebaseUser, profile, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // This is the actual fix for the "click twice" bug: we only redirect
+  // once AuthContext has confirmed both the Firebase session AND the
+  // Firestore profile are loaded — never immediately after signIn()
+  // resolves, since that's before AuthContext's own listeners have had
+  // a chance to catch up (that gap is exactly what caused the stale
+  // "not logged in" redirect back to /login on the first click).
+  useEffect(() => {
+    if (!loading && firebaseUser && profile) {
+      navigate('/', { replace: true });
+    }
+  }, [loading, firebaseUser, profile, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
