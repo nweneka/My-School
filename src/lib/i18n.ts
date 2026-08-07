@@ -159,6 +159,11 @@ const dict = {
   },
   downloadExcel: { fr: 'Télécharger (Excel)', en: 'Download (Excel)' },
   overallAverageColumn: { fr: 'Moyenne Générale', en: 'Overall Average' },
+  calculateRankings: { fr: 'Calculer les classements', en: 'Calculate rankings' },
+  calculatingRankings: { fr: 'Calcul en cours…', en: 'Calculating…' },
+  rankingsCalculated: { fr: 'Classements calculés.', en: 'Rankings calculated.' },
+  myPosition: { fr: 'Ma position', en: 'My position' },
+  rankColumn: { fr: 'Rang', en: 'Rank' },
 
   // Génération de comptes (élèves/enseignants)
   createStudentAccounts: { fr: 'Créer les comptes élèves', en: 'Create student accounts' },

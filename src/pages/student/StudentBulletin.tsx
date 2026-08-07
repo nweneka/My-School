@@ -1,15 +1,18 @@
-import { where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { doc, getDoc, where } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
+import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
 import { useTranslation } from '../../lib/i18n';
-import type { ResultEntry, Subject } from '../../types';
+import type { ClassRank, ResultEntry, RosterStudent, Subject } from '../../types';
 
 export default function StudentBulletin() {
   const { profile } = useAuth();
   const { school } = useSchool();
   const { t } = useTranslation();
+  const [classRank, setClassRank] = useState<ClassRank | null>(null);
 
   const { data: results } = useSchoolCollection<ResultEntry>(
     profile?.schoolId,
@@ -30,6 +33,23 @@ export default function StudentBulletin() {
       : null;
 
   const today = new Date().toLocaleDateString();
+
+  useEffect(() => {
+    if (!profile?.schoolId || !profile.admissionNo || !school?.currentTerm || !school?.currentSession) return;
+
+    getDoc(doc(db, 'schools', profile.schoolId, 'roster_students', profile.admissionNo)).then(
+      async (rosterSnap) => {
+        if (!rosterSnap.exists()) return;
+        const rosterStudent = rosterSnap.data() as RosterStudent;
+        const sessionSlug = school.currentSession.replace(/\//g, '-');
+        const rankId = `${rosterStudent.classId}__T${school.currentTerm}__${sessionSlug}__${profile.admissionNo}`;
+        const rankSnap = await getDoc(doc(db, 'schools', profile.schoolId!, 'class_ranks', rankId));
+        if (rankSnap.exists()) {
+          setClassRank({ id: rankSnap.id, ...(rankSnap.data() as Omit<ClassRank, 'id'>) });
+        }
+      }
+    );
+  }, [profile?.schoolId, profile?.admissionNo, school?.currentTerm, school?.currentSession]);
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -106,12 +126,22 @@ export default function StudentBulletin() {
         {overallAverage !== null && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t-2 border-slate-300">
             <span className="font-semibold text-slate-900">{t('overallAverageLabel')}</span>
-            <span
-              className="font-bold text-lg px-3 py-1 rounded-full text-slate-900"
-              style={{ backgroundColor: school?.secondaryColor ?? '#e2e8f0' }}
-            >
-              {overallAverage}/20
-            </span>
+            <div className="flex items-center gap-2">
+              {classRank && (
+                <span
+                  className="font-bold text-sm px-3 py-1 rounded-full text-white"
+                  style={{ backgroundColor: school?.primaryColor ?? '#0f172a' }}
+                >
+                  {t('myPosition')} : {classRank.rank}/{classRank.totalStudents}
+                </span>
+              )}
+              <span
+                className="font-bold text-lg px-3 py-1 rounded-full text-slate-900"
+                style={{ backgroundColor: school?.secondaryColor ?? '#e2e8f0' }}
+              >
+                {overallAverage}/20
+              </span>
+            </div>
           </div>
         )}
 

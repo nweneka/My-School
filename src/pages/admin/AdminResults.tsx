@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
 import { useTranslation } from '../../lib/i18n';
+import { rankStudents } from '../../lib/ranking';
 import type { ResultEntry, RosterStudent, RosterTeacher, SchoolClass, Subject } from '../../types';
 import { Link } from 'react-router-dom';
 
@@ -20,6 +21,8 @@ export default function AdminResults() {
   const { data: teachers } = useSchoolCollection<RosterTeacher>(profile?.schoolId, 'roster_teachers');
   const [publishing, setPublishing] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [calculatingRankings, setCalculatingRankings] = useState(false);
+  const [rankingsMessage, setRankingsMessage] = useState<string | null>(null);
 
   const classNameById = Object.fromEntries(classes.map((c) => [c.id, c.name]));
   const subjectNameById = Object.fromEntries(subjects.map((s) => [s.id, s.name]));
@@ -75,6 +78,67 @@ export default function AdminResults() {
     }
   }
 
+  function sessionSlug(session: string) {
+    return session.replace(/\//g, '-');
+  }
+
+  async function handleCalculateRankings() {
+    if (!profile?.schoolId) return;
+    setCalculatingRankings(true);
+    setRankingsMessage(null);
+    try {
+      // Only PUBLISHED results count toward rank — matches exactly what
+      // the student themselves can see, so a rank never implicitly
+      // reveals more than the student already has access to.
+      const published = results.filter((r) => r.status === 'published');
+
+      // Group by class + term + session (across all subjects), since
+      // rank is a whole-class standing, not a per-subject one.
+      const classGroups = new Map<string, ResultEntry[]>();
+      for (const r of published) {
+        const key = `${r.classId}__${r.term}__${r.session}`;
+        classGroups.set(key, [...(classGroups.get(key) ?? []), r]);
+      }
+
+      for (const [, entries] of classGroups) {
+        const { classId, term, session } = entries[0];
+
+        const byStudent = new Map<string, number[]>();
+        for (const e of entries) {
+          byStudent.set(e.studentAdmissionNo, [
+            ...(byStudent.get(e.studentAdmissionNo) ?? []),
+            e.average,
+          ]);
+        }
+        const studentAverages = Array.from(byStudent.entries()).map(([admissionNo, avgs]) => ({
+          admissionNo,
+          average: Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 100) / 100,
+        }));
+
+        const ranked = rankStudents(studentAverages);
+
+        const batch = writeBatch(db);
+        for (const s of ranked) {
+          const rankId = `${classId}__T${term}__${sessionSlug(session)}__${s.admissionNo}`;
+          batch.set(doc(db, 'schools', profile.schoolId, 'class_ranks', rankId), {
+            classId,
+            term,
+            session,
+            admissionNo: s.admissionNo,
+            rank: s.rank,
+            totalStudents: ranked.length,
+            average: s.average,
+          });
+        }
+        await batch.commit();
+      }
+
+      setRankingsMessage(t('rankingsCalculated'));
+    } finally {
+      setCalculatingRankings(false);
+    }
+  }
+
   function sanitizeSheetName(name: string) {
     // Excel sheet names: max 31 chars, no : \ / ? * [ ]
     return name.replace(/[:\\/?*[\]]/g, '').slice(0, 31) || 'Classe';
@@ -87,16 +151,16 @@ export default function AdminResults() {
       const classStudents = students.filter((s) => s.classId === cls.id);
       if (classStudents.length === 0) continue;
 
-      const header = [t('admissionNo'), t('fullName')];
+      const header = [t('rankColumn'), t('admissionNo'), t('fullName')];
       for (const subj of subjects) {
         header.push(`${subj.name} — ${t('ca')}`, `${subj.name} — ${t('exam')}`, `${subj.name} — ${t('average')}`);
       }
       header.push(t('overallAverageColumn'));
 
-      const rows: (string | number)[][] = [header];
+      const studentRows: { admissionNo: string; fullName: string; cells: (string | number)[]; average: number | null }[] = [];
 
       for (const stu of classStudents) {
-        const row: (string | number)[] = [stu.admissionNo, stu.fullName];
+        const cells: (string | number)[] = [];
         let sum = 0;
         let count = 0;
         for (const subj of subjects) {
@@ -107,15 +171,31 @@ export default function AdminResults() {
               res.classId === cls.id
           );
           if (r) {
-            row.push(r.ca, r.exam, r.average);
+            cells.push(r.ca, r.exam, r.average);
             sum += r.average;
             count += 1;
           } else {
-            row.push('', '', '');
+            cells.push('', '', '');
           }
         }
-        row.push(count > 0 ? Math.round((sum / count) * 100) / 100 : '');
-        rows.push(row);
+        const average = count > 0 ? Math.round((sum / count) * 100) / 100 : null;
+        studentRows.push({ admissionNo: stu.admissionNo, fullName: stu.fullName, cells, average });
+      }
+
+      const ranked = rankStudents(
+        studentRows.filter((s): s is typeof s & { average: number } => s.average !== null).map((s) => ({ admissionNo: s.admissionNo, average: s.average }))
+      );
+      const rankByAdmission = Object.fromEntries(ranked.map((r) => [r.admissionNo, r.rank]));
+
+      const rows: (string | number)[][] = [header];
+      for (const s of studentRows) {
+        rows.push([
+          rankByAdmission[s.admissionNo] ?? '',
+          s.admissionNo,
+          s.fullName,
+          ...s.cells,
+          s.average ?? '',
+        ]);
       }
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -163,7 +243,17 @@ export default function AdminResults() {
             >
               {t('downloadExcel')}
             </button>
+            <button
+              onClick={handleCalculateRankings}
+              disabled={calculatingRankings}
+              className="rounded-lg border border-slate-300 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
+            >
+              {calculatingRankings ? t('calculatingRankings') : t('calculateRankings')}
+            </button>
           </div>
+        )}
+        {rankingsMessage && (
+          <p className="text-sm text-emerald-600 mb-4">{rankingsMessage}</p>
         )}
 
         <div className="space-y-4">

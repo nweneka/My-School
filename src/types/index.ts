@@ -69,6 +69,17 @@ export interface ResultEntry {
   status: 'draft' | 'submitted' | 'published';
 }
 
+export interface ClassRank {
+  id: string;
+  classId: string;
+  term: number;
+  session: string;
+  admissionNo: string;
+  rank: number;
+  totalStudents: number;
+  average: number;
+}
+
 export interface Announcement {
   id: string;
   title: string;

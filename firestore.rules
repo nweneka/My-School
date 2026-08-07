@@ -133,6 +133,18 @@ service cloud.firestore {
         allow read: if isSameSchool(schoolId);
         allow write: if isAdmin(schoolId);
       }
+
+      // Class rankings: one doc per student per class/term/session,
+      // containing ONLY that student's rank + total class size — never
+      // classmates' names or scores. This is deliberately separate from
+      // /results so a student's read access can never accidentally leak
+      // another student's data while computing their position.
+      match /class_ranks/{rankId} {
+        allow read: if isAdmin(schoolId)
+                    || isTeacher(schoolId)
+                    || (isStudent(schoolId) && resource.data.admissionNo == myProfile().admissionNo);
+        allow write: if isAdmin(schoolId);
+      }
     }
   }
 }

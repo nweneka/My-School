@@ -1,16 +1,19 @@
-import { where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { doc, getDoc, where } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
+import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
 import { LogoutButton } from '../../components/LogoutButton';
 import { useTranslation } from '../../lib/i18n';
-import type { ResultEntry, Subject } from '../../types';
+import type { ClassRank, ResultEntry, RosterStudent, Subject } from '../../types';
 
 export default function StudentDashboard() {
   const { profile } = useAuth();
   const { school } = useSchool();
   const { t } = useTranslation();
+  const [classRank, setClassRank] = useState<ClassRank | null>(null);
 
   const { data: results, loading } = useSchoolCollection<ResultEntry>(
     profile?.schoolId,
@@ -29,6 +32,23 @@ export default function StudentDashboard() {
     results.length > 0
       ? Math.round((results.reduce((sum, r) => sum + r.average, 0) / results.length) * 100) / 100
       : null;
+
+  useEffect(() => {
+    if (!profile?.schoolId || !profile.admissionNo || !school?.currentTerm || !school?.currentSession) return;
+
+    getDoc(doc(db, 'schools', profile.schoolId, 'roster_students', profile.admissionNo)).then(
+      async (rosterSnap) => {
+        if (!rosterSnap.exists()) return;
+        const rosterStudent = rosterSnap.data() as RosterStudent;
+        const sessionSlug = school.currentSession.replace(/\//g, '-');
+        const rankId = `${rosterStudent.classId}__T${school.currentTerm}__${sessionSlug}__${profile.admissionNo}`;
+        const rankSnap = await getDoc(doc(db, 'schools', profile.schoolId!, 'class_ranks', rankId));
+        if (rankSnap.exists()) {
+          setClassRank({ id: rankSnap.id, ...(rankSnap.data() as Omit<ClassRank, 'id'>) });
+        }
+      }
+    );
+  }, [profile?.schoolId, profile?.admissionNo, school?.currentTerm, school?.currentSession]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -52,16 +72,26 @@ export default function StudentDashboard() {
         </p>
 
         <div className="mt-8 max-w-2xl">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h3 className="text-sm font-medium text-slate-700">{t('myResults')}</h3>
-            {overallAverage !== null && (
-              <span
-                className="text-sm font-semibold px-3 py-1 rounded-full text-slate-900"
-                style={{ backgroundColor: school?.secondaryColor ?? '#e2e8f0' }}
-              >
-                {t('average')} : {overallAverage}/20
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {classRank && (
+                <span
+                  className="text-sm font-semibold px-3 py-1 rounded-full text-slate-900"
+                  style={{ backgroundColor: school?.primaryColor ?? '#0f172a', color: 'white' }}
+                >
+                  {t('myPosition')} : {classRank.rank} / {classRank.totalStudents}
+                </span>
+              )}
+              {overallAverage !== null && (
+                <span
+                  className="text-sm font-semibold px-3 py-1 rounded-full text-slate-900"
+                  style={{ backgroundColor: school?.secondaryColor ?? '#e2e8f0' }}
+                >
+                  {t('average')} : {overallAverage}/20
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
