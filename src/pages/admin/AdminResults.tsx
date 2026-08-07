@@ -39,12 +39,36 @@ export default function AdminResults() {
     try {
       const batch = writeBatch(db);
       for (const r of entries) {
-        if (r.status === 'published') continue;
+        if (r.status !== 'submitted') continue; // leave drafts and already-published alone
         batch.update(doc(db, 'schools', profile.schoolId, 'results', r.id), {
           status: 'published',
         });
       }
       await batch.commit();
+    } finally {
+      setPublishing(null);
+    }
+  }
+
+  async function handlePublishAll() {
+    if (!profile?.schoolId) return;
+    const toPublish = results.filter((r) => r.status === 'submitted');
+    if (toPublish.length === 0) return;
+    if (!window.confirm(t('publishAllConfirm'))) return;
+
+    setPublishing('__all__');
+    try {
+      // Firestore batches cap at 500 writes — chunk for large schools.
+      for (let i = 0; i < toPublish.length; i += 450) {
+        const chunk = toPublish.slice(i, i + 450);
+        const batch = writeBatch(db);
+        for (const r of chunk) {
+          batch.update(doc(db, 'schools', profile.schoolId, 'results', r.id), {
+            status: 'published',
+          });
+        }
+        await batch.commit();
+      }
     } finally {
       setPublishing(null);
     }
@@ -68,6 +92,18 @@ export default function AdminResults() {
           <p className="text-sm text-slate-400">
             {t('noResultsYet')}
           </p>
+        )}
+
+        {!loading && results.some((r) => r.status === 'submitted') && (
+          <div className="mb-4">
+            <button
+              onClick={handlePublishAll}
+              disabled={publishing === '__all__'}
+              className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {publishing === '__all__' ? t('publishing') : t('publishAll')}
+            </button>
+          </div>
         )}
 
         <div className="space-y-4">

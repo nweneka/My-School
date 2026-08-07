@@ -152,6 +152,11 @@ const dict = {
   statusSubmitted: { fr: 'Soumis', en: 'Submitted' },
   showDetails: { fr: 'Voir le détail', en: 'View details' },
   hideDetails: { fr: 'Masquer le détail', en: 'Hide details' },
+  publishAll: { fr: 'Tout publier', en: 'Publish all' },
+  publishAllConfirm: {
+    fr: 'Publier toutes les notes soumises non encore publiées ?',
+    en: 'Publish all submitted scores that are not yet published?',
+  },
 
   // Génération de comptes (élèves/enseignants)
   createStudentAccounts: { fr: 'Créer les comptes élèves', en: 'Create student accounts' },
