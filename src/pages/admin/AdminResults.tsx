@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { doc, writeBatch } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -74,6 +75,57 @@ export default function AdminResults() {
     }
   }
 
+  function sanitizeSheetName(name: string) {
+    // Excel sheet names: max 31 chars, no : \ / ? * [ ]
+    return name.replace(/[:\\/?*[\]]/g, '').slice(0, 31) || 'Classe';
+  }
+
+  function handleExportExcel() {
+    const wb = XLSX.utils.book_new();
+
+    for (const cls of classes) {
+      const classStudents = students.filter((s) => s.classId === cls.id);
+      if (classStudents.length === 0) continue;
+
+      const header = [t('admissionNo'), t('fullName')];
+      for (const subj of subjects) {
+        header.push(`${subj.name} — ${t('ca')}`, `${subj.name} — ${t('exam')}`, `${subj.name} — ${t('average')}`);
+      }
+      header.push(t('overallAverageColumn'));
+
+      const rows: (string | number)[][] = [header];
+
+      for (const stu of classStudents) {
+        const row: (string | number)[] = [stu.admissionNo, stu.fullName];
+        let sum = 0;
+        let count = 0;
+        for (const subj of subjects) {
+          const r = results.find(
+            (res) =>
+              res.studentAdmissionNo === stu.admissionNo &&
+              res.subjectId === subj.id &&
+              res.classId === cls.id
+          );
+          if (r) {
+            row.push(r.ca, r.exam, r.average);
+            sum += r.average;
+            count += 1;
+          } else {
+            row.push('', '', '');
+          }
+        }
+        row.push(count > 0 ? Math.round((sum / count) * 100) / 100 : '');
+        rows.push(row);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, sanitizeSheetName(cls.name));
+    }
+
+    const sessionSlug = (school?.currentSession ?? 'session').replace(/\//g, '-');
+    XLSX.writeFile(wb, `resultats-${sessionSlug}-T${school?.currentTerm ?? ''}.xlsx`);
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header
@@ -94,14 +146,22 @@ export default function AdminResults() {
           </p>
         )}
 
-        {!loading && results.some((r) => r.status === 'submitted') && (
-          <div className="mb-4">
+        {!loading && results.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {results.some((r) => r.status === 'submitted') && (
+              <button
+                onClick={handlePublishAll}
+                disabled={publishing === '__all__'}
+                className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {publishing === '__all__' ? t('publishing') : t('publishAll')}
+              </button>
+            )}
             <button
-              onClick={handlePublishAll}
-              disabled={publishing === '__all__'}
-              className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+              onClick={handleExportExcel}
+              className="rounded-lg border border-slate-300 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-50"
             >
-              {publishing === '__all__' ? t('publishing') : t('publishAll')}
+              {t('downloadExcel')}
             </button>
           </div>
         )}

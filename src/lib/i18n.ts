@@ -157,6 +157,8 @@ const dict = {
     fr: 'Publier toutes les notes soumises non encore publiées ?',
     en: 'Publish all submitted scores that are not yet published?',
   },
+  downloadExcel: { fr: 'Télécharger (Excel)', en: 'Download (Excel)' },
+  overallAverageColumn: { fr: 'Moyenne Générale', en: 'Overall Average' },
 
   // Génération de comptes (élèves/enseignants)
   createStudentAccounts: { fr: 'Créer les comptes élèves', en: 'Create student accounts' },
