@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
 import { useTranslation } from '../../lib/i18n';
-import type { ResultEntry, SchoolClass, Subject } from '../../types';
+import type { ResultEntry, RosterStudent, RosterTeacher, SchoolClass, Subject } from '../../types';
 import { Link } from 'react-router-dom';
 
 export default function AdminResults() {
@@ -15,10 +15,15 @@ export default function AdminResults() {
   const { data: results, loading } = useSchoolCollection<ResultEntry>(profile?.schoolId, 'results');
   const { data: classes } = useSchoolCollection<SchoolClass>(profile?.schoolId, 'classes');
   const { data: subjects } = useSchoolCollection<Subject>(profile?.schoolId, 'subjects');
+  const { data: students } = useSchoolCollection<RosterStudent>(profile?.schoolId, 'roster_students');
+  const { data: teachers } = useSchoolCollection<RosterTeacher>(profile?.schoolId, 'roster_teachers');
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const classNameById = Object.fromEntries(classes.map((c) => [c.id, c.name]));
   const subjectNameById = Object.fromEntries(subjects.map((s) => [s.id, s.name]));
+  const studentNameByAdmission = Object.fromEntries(students.map((s) => [s.admissionNo, s.fullName]));
+  const teacherNameByStaffId = Object.fromEntries(teachers.map((t) => [t.staffId, t.fullName]));
 
   // Group results by class + subject + term + session so the admin
   // publishes a whole batch at once, not one student at a time.
@@ -72,11 +77,17 @@ export default function AdminResults() {
             const publishedCount = entries.filter((e) => e.status === 'published').length;
             const allPublished = publishedCount === entries.length;
             const hasDrafts = entries.some((e) => e.status === 'draft');
+            const isExpanded = expanded === key;
+            const teacherName =
+              teacherNameByStaffId[first.enteredByStaffId] ?? first.enteredByStaffId;
 
             return (
               <div key={key} className="bg-white rounded-xl border border-slate-200 p-5">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <button
+                    onClick={() => setExpanded(isExpanded ? null : key)}
+                    className="text-left flex-1 min-w-[10rem]"
+                  >
                     <p className="text-sm font-medium text-slate-900">
                       {classNameById[first.classId] ?? first.classId} ·{' '}
                       {subjectNameById[first.subjectId] ?? first.subjectId}
@@ -85,23 +96,79 @@ export default function AdminResults() {
                       {first.session} · {t('term')} {first.term} · {entries.length} {t('studentsCount')}
                       {hasDrafts && ` · ${t('someInDraft')}`}
                     </p>
-                  </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {t('enteredBy')}: {teacherName}
+                    </p>
+                  </button>
 
-                  {allPublished ? (
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
-                      {t('published')}
-                    </span>
-                  ) : (
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => handlePublish(key, entries)}
-                      disabled={publishing === key || submittedCount === 0}
-                      className="rounded-lg bg-slate-900 text-white px-3 py-1.5 text-sm font-medium disabled:opacity-40"
-                      title={submittedCount === 0 ? t('awaitingSubmission') : undefined}
+                      onClick={() => setExpanded(isExpanded ? null : key)}
+                      className="text-xs font-medium text-slate-600 hover:text-slate-900 underline"
                     >
-                      {publishing === key ? t('publishing') : t('publish')}
+                      {isExpanded ? t('hideDetails') : t('showDetails')}
                     </button>
-                  )}
+                    {allPublished ? (
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
+                        {t('published')}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handlePublish(key, entries)}
+                        disabled={publishing === key || submittedCount === 0}
+                        className="rounded-lg bg-slate-900 text-white px-3 py-1.5 text-sm font-medium disabled:opacity-40"
+                        title={submittedCount === 0 ? t('awaitingSubmission') : undefined}
+                      >
+                        {publishing === key ? t('publishing') : t('publish')}
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-slate-400">
+                          <th className="pb-2 font-normal">{t('studentInfo')}</th>
+                          <th className="pb-2 font-normal text-right">{t('ca')}</th>
+                          <th className="pb-2 font-normal text-right">{t('exam')}</th>
+                          <th className="pb-2 font-normal text-right">{t('average')}</th>
+                          <th className="pb-2 font-normal text-right pl-3">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {entries.map((r) => (
+                          <tr key={r.id} className="border-t border-slate-50">
+                            <td className="py-1.5 text-slate-900">
+                              {studentNameByAdmission[r.studentAdmissionNo] ?? r.studentAdmissionNo}
+                            </td>
+                            <td className="py-1.5 text-right text-slate-600">{r.ca}</td>
+                            <td className="py-1.5 text-right text-slate-600">{r.exam}</td>
+                            <td className="py-1.5 text-right font-medium text-slate-900">{r.average}</td>
+                            <td className="py-1.5 text-right pl-3">
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  r.status === 'published'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : r.status === 'submitted'
+                                      ? 'bg-blue-50 text-blue-700'
+                                      : 'bg-slate-100 text-slate-500'
+                                }`}
+                              >
+                                {r.status === 'published'
+                                  ? t('published')
+                                  : r.status === 'submitted'
+                                    ? t('statusSubmitted')
+                                    : t('statusDraft')}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             );
           })}

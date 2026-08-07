@@ -147,6 +147,11 @@ const dict = {
     fr: "En attente de soumission par l'enseignant",
     en: 'Awaiting teacher submission',
   },
+  enteredBy: { fr: 'Saisi par', en: 'Entered by' },
+  statusDraft: { fr: 'Brouillon', en: 'Draft' },
+  statusSubmitted: { fr: 'Soumis', en: 'Submitted' },
+  showDetails: { fr: 'Voir le détail', en: 'View details' },
+  hideDetails: { fr: 'Masquer le détail', en: 'Hide details' },
 
   // Génération de comptes (élèves/enseignants)
   createStudentAccounts: { fr: 'Créer les comptes élèves', en: 'Create student accounts' },
