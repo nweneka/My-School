@@ -84,8 +84,24 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---- schools: publicly readable (needed for the school picker and
-    // branding on the login page, before anyone is authenticated).
+    // ---- school_directory: the ONLY publicly-readable school data —
+    // just {name}, nothing else. This exists purely so the login page's
+    // school picker can work before anyone is authenticated. Every real
+    // school detail (branding, subscription dates, who created it) lives
+    // in /schools instead, which is NOT public. Kept in sync by the app
+    // whenever a school is created or its name changes. ----
+    match /school_directory/{schoolId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+                    && get(/databases/$(database)/documents/schools/$(schoolId)).data.createdBy == request.auth.uid;
+      allow update: if isAdmin(schoolId) || isPlatformAdmin();
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ---- schools: full record — branding, subscription, creator.
+    // Only readable by that school's own members or a platform admin —
+    // NOT public (see school_directory above for what public visitors
+    // can see instead).
     // Create: anyone signed in can create a BRAND NEW school (Firestore's
     // create semantics already forbid overwriting an existing doc), as
     // long as they mark themselves as its creator — this is what the
@@ -94,7 +110,7 @@ service cloud.firestore {
     // Update: only that school's own admin, or a platform admin
     // (subscription activation). ----
     match /schools/{schoolId} {
-      allow read: if true;
+      allow read: if isSameSchool(schoolId) || isPlatformAdmin();
       allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
       allow update: if isAdmin(schoolId) || isPlatformAdmin();
       allow delete: if isPlatformAdmin();

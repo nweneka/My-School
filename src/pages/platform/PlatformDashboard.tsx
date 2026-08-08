@@ -67,6 +67,7 @@ export default function PlatformDashboard() {
         await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
       }
       await deleteDoc(doc(db, 'schools', school.id));
+      await deleteDoc(doc(db, 'school_directory', school.id)).catch(() => {});
       await loadSchools();
     } finally {
       setDeleting(null);

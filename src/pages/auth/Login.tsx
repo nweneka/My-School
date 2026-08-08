@@ -12,7 +12,7 @@ type SchoolOption = { id: string; name: string };
 function useSchoolOptions() {
   const [schools, setSchools] = useState<SchoolOption[]>([]);
   useEffect(() => {
-    getDocs(collection(db, 'schools')).then((snap) => {
+    getDocs(collection(db, 'school_directory')).then((snap) => {
       setSchools(snap.docs.map((d) => ({ id: d.id, name: (d.data().name as string) ?? d.id })));
     });
   }, []);

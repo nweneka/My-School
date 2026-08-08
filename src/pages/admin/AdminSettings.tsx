@@ -48,6 +48,12 @@ export default function AdminSettings() {
         secondaryColor,
         language,
       });
+      // Keep the public directory entry (used by the login page picker)
+      // in sync — it only holds the name, but that still needs updating
+      // whenever the school renames itself.
+      await updateDoc(doc(db, 'school_directory', profile.schoolId), {
+        name: name.trim(),
+      });
     } finally {
       setSavingDetails(false);
     }

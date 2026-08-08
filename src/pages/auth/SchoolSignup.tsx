@@ -85,6 +85,14 @@ export default function SchoolSignup() {
           displayName: yourName.trim(),
           status: 'active',
         });
+
+        // Public directory entry — just the name, used by the login page's
+        // school picker. The rule for this requires the schools/{schoolId}
+        // doc (created above) to already exist with createdBy == us, so
+        // this write must come after it, not before or in parallel.
+        await setDoc(doc(db, 'school_directory', schoolId), {
+          name: schoolName.trim(),
+        });
         // Don't navigate here — same fix as Login: wait for AuthContext
         // to actually confirm the session + profile via the effect above.
       } catch (innerErr) {
