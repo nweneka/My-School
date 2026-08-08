@@ -3,6 +3,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SchoolProvider } from './contexts/SchoolContext';
 import { RequireRole } from './components/RequireRole';
 import Login from './pages/auth/Login';
+import SchoolSignup from './pages/auth/SchoolSignup';
+import { RequirePlatformAdmin } from './components/RequirePlatformAdmin';
+import PlatformDashboard from './pages/platform/PlatformDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminClasses from './pages/admin/AdminClasses';
 import AdminStudents from './pages/admin/AdminStudents';
@@ -44,6 +47,15 @@ export default function App() {
         <SchoolProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SchoolSignup />} />
+            <Route
+              path="/platform"
+              element={
+                <RequirePlatformAdmin>
+                  <PlatformDashboard />
+                </RequirePlatformAdmin>
+              }
+            />
             <Route path="/" element={<Home />} />
             <Route
               path="/admin"

@@ -4,12 +4,14 @@ import { useSchool } from '../../contexts/SchoolContext';
 import { useSchoolCollection } from '../../hooks/useSchoolCollection';
 import { LogoutButton } from '../../components/LogoutButton';
 import { useTranslation } from '../../lib/i18n';
+import { getSubscriptionState } from '../../lib/subscription';
 import type { RosterStudent, SchoolClass } from '../../types';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const { school } = useSchool();
   const { t } = useTranslation();
+  const subscription = getSubscriptionState(school);
   const { data: students } = useSchoolCollection<RosterStudent>(profile?.schoolId, 'roster_students');
   const { data: classes } = useSchoolCollection<SchoolClass>(profile?.schoolId, 'classes');
 
@@ -48,6 +50,23 @@ export default function AdminDashboard() {
       </header>
 
       <div className="p-8">
+        {(subscription.status === 'expired' || subscription.isExpiringSoon || subscription.status === 'trial') && (
+          <div
+            className={`mb-6 rounded-lg p-4 text-sm ${
+              subscription.status === 'expired'
+                ? 'bg-red-50 border border-red-200 text-red-800'
+                : 'bg-amber-50 border border-amber-200 text-amber-800'
+            }`}
+          >
+            {subscription.status === 'expired' && school?.plan === 'active' && t('subscriptionExpired')}
+            {subscription.status === 'expired' && school?.plan !== 'active' && t('trialExpired')}
+            {subscription.status === 'trial' && subscription.daysLeft !== null &&
+              t('trialDaysLeft', { days: subscription.daysLeft })}
+            {subscription.status === 'active' && subscription.isExpiringSoon && subscription.daysLeft !== null &&
+              t('subscriptionDaysLeft', { days: subscription.daysLeft })}
+          </div>
+        )}
+
         <h2 className="text-2xl font-semibold text-slate-900">{t('adminDashboardTitle')}</h2>
         <p className="text-slate-500 mt-1">{t('welcome')}, {profile?.displayName}</p>
 

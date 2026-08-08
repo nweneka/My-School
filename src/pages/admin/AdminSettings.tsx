@@ -4,6 +4,7 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSchool } from '../../contexts/SchoolContext';
 import { useTranslation, type Lang } from '../../lib/i18n';
+import { COLOR_THEMES } from '../../lib/themePresets';
 import { Link } from 'react-router-dom';
 
 export default function AdminSettings() {
@@ -113,6 +114,27 @@ export default function AdminSettings() {
               onChange={(e) => setName(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm text-slate-600">{t('chooseColorTheme')}</label>
+            <div className="grid grid-cols-4 gap-2">
+              {COLOR_THEMES.map((theme) => (
+                <button
+                  type="button"
+                  key={theme.name}
+                  title={theme.name}
+                  onClick={() => {
+                    setPrimaryColor(theme.primaryColor);
+                    setSecondaryColor(theme.secondaryColor);
+                  }}
+                  className="h-10 rounded-lg border-2 border-transparent hover:border-slate-300 flex overflow-hidden"
+                >
+                  <span className="w-1/2 h-full" style={{ backgroundColor: theme.primaryColor }} />
+                  <span className="w-1/2 h-full" style={{ backgroundColor: theme.secondaryColor }} />
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

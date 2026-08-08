@@ -24,6 +24,11 @@ export interface School {
   plan: 'trial' | 'active' | 'suspended';
   caWeight?: number;    // percentage, e.g. 40 — defaults to 40/60 if unset
   examWeight?: number;  // percentage, e.g. 60 — must sum to 100 with caWeight
+  createdBy?: string;          // uid of the admin who self-registered this school
+  createdAt?: number;
+  trialEndsAt?: number;        // set at signup: createdAt + 30 days
+  subscriptionStart?: number;  // set when a platform admin activates payment
+  subscriptionEndsAt?: number; // subscriptionStart + 1 year
 }
 
 export interface RosterStudent {

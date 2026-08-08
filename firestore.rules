@@ -36,27 +36,47 @@ service cloud.firestore {
       return isSameSchool(schoolId) && myRole() == 'student';
     }
 
+    // Platform admin = a small, manually-managed allowlist (never created
+    // via the app itself) used only to activate paid subscriptions across
+    // ALL schools. This is intentionally separate from any school's own
+    // admin role.
+    function isPlatformAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+    }
+
+    // ---- platform_admins: read-only-of-self, never writable from the
+    // client at all — only ever set up manually in the Firebase console. ----
+    match /platform_admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // ---- users: a user can read/update only their own profile.
-    // Accounts are created either by an admin bulk-generating them for
-    // their own school (student/teacher only — never admin/superadmin,
-    // so this path can't be used to self-promote), or in future by a
-    // trusted backend flow. Role/schoolId are never editable by the
-    // owning user afterward. ----
+    // Accounts are created in one of two ways:
+    //  1. An existing admin bulk-creates student/teacher accounts for
+    //     their own school.
+    //  2. Self-onboarding: someone registers as the founding admin of a
+    //     BRAND NEW school. This is only allowed if the referenced school
+    //     document already records THEM as its creator (see the schools
+    //     create rule below) — so this can never be used to attach an
+    //     admin identity to an existing school. ----
     match /users/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create: if request.auth != null
-                    && isAdmin(request.resource.data.schoolId)
-                    && request.resource.data.role in ['student', 'teacher'];
+                    && (
+                      (isAdmin(request.resource.data.schoolId)
+                        && request.resource.data.role in ['student', 'teacher'])
+                      ||
+                      (request.auth.uid == uid
+                        && request.resource.data.role == 'admin'
+                        && get(/databases/$(database)/documents/schools/$(request.resource.data.schoolId)).data.createdBy == request.auth.uid)
+                    );
       allow update: if (isSignedIn() && request.auth.uid == uid
                     && request.resource.data.role == resource.data.role
                     && request.resource.data.schoolId == resource.data.schoolId
                     && request.resource.data.get('admissionNo', null) == resource.data.get('admissionNo', null)
                     && request.resource.data.get('classIds', null) == resource.data.get('classIds', null))
-                    // Admins of the same school may update a teacher's own
-                    // profile fields (e.g. classIds) after account creation
-                    // — this is what lets "assign a class later" work once
-                    // a teacher's account already exists. Role/schoolId
-                    // still can't be changed this way.
                     || (isAdmin(resource.data.schoolId)
                         && resource.data.role == 'teacher'
                         && request.resource.data.role == resource.data.role
@@ -65,15 +85,20 @@ service cloud.firestore {
     }
 
     // ---- schools: publicly readable (needed for the school picker and
-    // branding on the login page, before anyone is authenticated). Only
-    // admins of that same school can write to it. ----
+    // branding on the login page, before anyone is authenticated).
+    // Create: anyone signed in can create a BRAND NEW school (Firestore's
+    // create semantics already forbid overwriting an existing doc), as
+    // long as they mark themselves as its creator — this is what the
+    // self-onboarding flow uses, and it's what the users/{uid} admin
+    // self-registration above checks against.
+    // Update: only that school's own admin, or a platform admin
+    // (subscription activation). ----
     match /schools/{schoolId} {
       allow read: if true;
-      allow write: if isAdmin(schoolId);
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAdmin(schoolId) || isPlatformAdmin();
+      allow delete: if isPlatformAdmin();
 
-      // ---- roster_students: admins manage the roster. A student may
-      // read only the single roster record that matches their own
-      // claimed uid (needed for profile display), never the whole list. ----
       match /roster_students/{admissionNo} {
         allow read: if isAdmin(schoolId)
                     || isTeacher(schoolId)
@@ -97,13 +122,6 @@ service cloud.firestore {
         allow write: if isAdmin(schoolId);
       }
 
-      // ---- results: the core sensitive collection.
-      // - Admins: full access within their school.
-      // - Teachers: can create/edit only rows for classes they are
-      //   assigned to, and only while status is draft/submitted
-      //   (never after publish).
-      // - Students: can read ONLY their own results, and ONLY once
-      //   published. They can never write. ----
       match /results/{resultId} {
         allow read: if isAdmin(schoolId)
                     || isTeacher(schoolId)
@@ -111,11 +129,6 @@ service cloud.firestore {
                         && resource.data.status == 'published'
                         && resource.data.studentAdmissionNo == myProfile().admissionNo);
 
-        // NOTE: create and update are split on purpose. On create there is
-        // no existing document yet, so checking resource.data (the OLD
-        // doc) would always fail — that was the original bug: it silently
-        // blocked every first-time score entry by a teacher. Create checks
-        // request.resource.data (the NEW doc being written) instead.
         allow create: if isAdmin(schoolId)
                     || (isTeacher(schoolId)
                         && request.resource.data.status != 'published'
@@ -134,11 +147,6 @@ service cloud.firestore {
         allow write: if isAdmin(schoolId);
       }
 
-      // Class rankings: one doc per student per class/term/session,
-      // containing ONLY that student's rank + total class size — never
-      // classmates' names or scores. This is deliberately separate from
-      // /results so a student's read access can never accidentally leak
-      // another student's data while computing their position.
       match /class_ranks/{rankId} {
         allow read: if isAdmin(schoolId)
                     || isTeacher(schoolId)

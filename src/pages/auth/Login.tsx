@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { auth, db } from '../../lib/firebase';
 import { translate, type Lang } from '../../lib/i18n';
 import { useAuth } from '../../contexts/AuthContext';
@@ -318,6 +318,12 @@ export default function Login() {
         </div>
 
         {tab === 'student' ? <StudentLogin lang={lang} /> : <StaffLogin lang={lang} />}
+
+        <p className="text-center text-xs text-slate-400 pt-2">
+          <Link to="/signup" className="hover:text-slate-600 underline">
+            {translate('newSchoolCta', lang)}
+          </Link>
+        </p>
       </div>
     </div>
   );

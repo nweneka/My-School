@@ -337,6 +337,64 @@ const dict = {
     fr: 'Erreur lors de la génération du bulletin. Contactez votre administration.',
     en: 'Error generating the report card. Contact your school administration.',
   },
+
+  // Auto-inscription d'école
+  newSchoolCta: { fr: 'Nouvelle école ? Créez votre compte', en: 'New school? Create your account' },
+  createSchoolTitle: { fr: 'Créer votre école', en: 'Create your school' },
+  schoolNameField: { fr: "Nom de l'école", en: 'School name' },
+  yourNameField: { fr: 'Votre nom', en: 'Your name' },
+  chooseColorTheme: { fr: 'Choisissez un thème de couleurs', en: 'Choose a color theme' },
+  createAccount: { fr: 'Créer mon compte', en: 'Create my account' },
+  creatingAccount: { fr: 'Création…', en: 'Creating…' },
+  trialNotice: {
+    fr: 'Essai gratuit de 30 jours, sans engagement.',
+    en: 'Free 30-day trial, no commitment.',
+  },
+  schoolNameTaken: {
+    fr: 'Ce nom est déjà utilisé. Essayez une variante (ex: ajoutez votre ville).',
+    en: 'This name is already taken. Try a variation (e.g. add your city).',
+  },
+  emailAlreadyInUseSignup: {
+    fr: 'Cette adresse email est déjà utilisée. Essayez de vous connecter à la place.',
+    en: 'This email is already in use. Try signing in instead.',
+  },
+  signupGenericError: {
+    fr: 'Une erreur est survenue. Réessayez.',
+    en: 'Something went wrong. Please try again.',
+  },
+  alreadyHaveAccount: { fr: 'Vous avez déjà un compte ?', en: 'Already have an account?' },
+  backToLoginLink: { fr: 'Se connecter', en: 'Sign in' },
+
+  // Bannière d'abonnement
+  trialDaysLeft: { fr: "Essai gratuit : {days} jour(s) restant(s)", en: 'Free trial: {days} day(s) left' },
+  trialExpired: {
+    fr: "Votre essai gratuit est terminé. Contactez-nous pour activer votre abonnement.",
+    en: 'Your free trial has ended. Contact us to activate your subscription.',
+  },
+  subscriptionDaysLeft: {
+    fr: 'Abonnement : {days} jour(s) restant(s)',
+    en: 'Subscription: {days} day(s) left',
+  },
+  subscriptionExpired: {
+    fr: 'Votre abonnement est expiré. Contactez-nous pour le renouveler.',
+    en: 'Your subscription has expired. Contact us to renew.',
+  },
+  subscriptionExpiringSoon: {
+    fr: 'renouvelez bientôt',
+    en: 'renew soon',
+  },
+
+  // Tableau de bord plateforme
+  platformDashboardTitle: { fr: 'Tableau de bord — Plateforme', en: 'Platform Dashboard' },
+  allSchools: { fr: 'Toutes les écoles', en: 'All schools' },
+  statusTrial: { fr: 'Essai', en: 'Trial' },
+  statusActive: { fr: 'Actif', en: 'Active' },
+  statusExpired: { fr: 'Expiré', en: 'Expired' },
+  activateSubscription: { fr: "Activer l'abonnement (1 an)", en: 'Activate subscription (1 year)' },
+  activating: { fr: 'Activation…', en: 'Activating…' },
+  activatedOn: { fr: 'Activé le', en: 'Activated on' },
+  expiresOn: { fr: 'Expire le', en: 'Expires on' },
+  daysRemaining: { fr: 'jours restants', en: 'days remaining' },
   studentPasswordLocked: {
     fr: "Votre mot de passe est votre date de naissance et ne peut pas être modifié. En cas de problème de connexion, contactez votre administration.",
     en: 'Your password is your date of birth and cannot be changed. If you have trouble signing in, contact your school administration.',
@@ -356,12 +414,18 @@ const dict = {
 
 export type TranslationKey = keyof typeof dict;
 
-export function translate(key: TranslationKey, lang: Lang): string {
-  return dict[key][lang];
+export function translate(key: TranslationKey, lang: Lang, vars?: Record<string, string | number>): string {
+  let text: string = dict[key][lang];
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      text = text.replace(`{${k}}`, String(v));
+    }
+  }
+  return text;
 }
 
 export function useTranslation() {
   const { school } = useSchool();
   const lang: Lang = school?.language ?? 'fr';
-  return { t: (key: TranslationKey) => translate(key, lang), lang };
+  return { t: (key: TranslationKey, vars?: Record<string, string | number>) => translate(key, lang, vars), lang };
 }
