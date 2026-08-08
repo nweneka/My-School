@@ -11,12 +11,17 @@ type SchoolOption = { id: string; name: string };
 
 function useSchoolOptions() {
   const [schools, setSchools] = useState<SchoolOption[]>([]);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    getDocs(collection(db, 'school_directory')).then((snap) => {
-      setSchools(snap.docs.map((d) => ({ id: d.id, name: (d.data().name as string) ?? d.id })));
-    });
+    getDocs(collection(db, 'school_directory'))
+      .then((snap) => {
+        setSchools(snap.docs.map((d) => ({ id: d.id, name: (d.data().name as string) ?? d.id })));
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      });
   }, []);
-  return schools;
+  return { schools, error };
 }
 
 function SchoolSelect({
@@ -28,7 +33,7 @@ function SchoolSelect({
   onChange: (v: string) => void;
   lang: Lang;
 }) {
-  const schools = useSchoolOptions();
+  const { schools, error } = useSchoolOptions();
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium text-slate-700">{translate('school', lang)}</label>
@@ -45,6 +50,7 @@ function SchoolSelect({
           </option>
         ))}
       </select>
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }
