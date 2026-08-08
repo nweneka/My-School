@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { getSubscriptionState } from '../../lib/subscription';
 import type { School } from '../../types';
 
 const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+const SUBCOLLECTIONS = [
+  'roster_students',
+  'roster_teachers',
+  'classes',
+  'subjects',
+  'results',
+  'announcements',
+  'class_ranks',
+];
 
 export default function PlatformDashboard() {
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   async function loadSchools() {
     setLoading(true);
@@ -37,9 +48,37 @@ export default function PlatformDashboard() {
     }
   }
 
+  async function handleDelete(school: School) {
+    const confirmed = window.confirm(
+      `Supprimer définitivement "${school.name}" et toutes ses données (élèves, enseignants, notes) ? Cette action est irréversible.`
+    );
+    if (!confirmed) return;
+
+    setDeleting(school.id);
+    try {
+      // Best-effort cleanup of subcollections — a client can't delete a
+      // whole subtree in one call, so we fetch and delete each collection's
+      // docs individually. This won't remove the founding admin's Firebase
+      // Auth login (that needs the Console, client SDK can't delete
+      // another user's account) — worth doing manually afterward if this
+      // was a throwaway/abuse signup.
+      for (const sub of SUBCOLLECTIONS) {
+        const snap = await getDocs(collection(db, 'schools', school.id, sub));
+        await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+      }
+      await deleteDoc(doc(db, 'schools', school.id));
+      await loadSchools();
+    } finally {
+      setDeleting(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="px-4 sm:px-8 py-4 sm:py-5 bg-slate-900">
+      <header className="px-4 sm:px-8 py-4 sm:py-5 bg-slate-900 flex flex-wrap items-center gap-3">
+        <Link to="/admin" className="text-white/80 hover:text-white text-sm">
+          ← Retour
+        </Link>
         <h1 className="text-white font-semibold text-lg">Tableau de bord — Plateforme</h1>
       </header>
 
@@ -100,6 +139,13 @@ export default function PlatformDashboard() {
                       {activating === school.id ? 'Activation…' : "Activer l'abonnement (1 an)"}
                     </button>
                   )}
+                  <button
+                    onClick={() => handleDelete(school)}
+                    disabled={deleting === school.id}
+                    className="rounded-lg border border-red-300 text-red-600 px-3 py-1.5 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {deleting === school.id ? 'Suppression…' : 'Supprimer'}
+                  </button>
                 </div>
               </div>
             );
