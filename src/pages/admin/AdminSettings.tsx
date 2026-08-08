@@ -88,7 +88,14 @@ export default function AdminSettings() {
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
               ) : (
                 <span className="text-xs text-slate-400">{t('none')}</span>
               )}
@@ -106,6 +113,9 @@ export default function AdminSettings() {
           <p className="text-xs text-slate-400 -mt-2">
             {t('logoHostNote')}
           </p>
+          {logoUrl && !/\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i.test(logoUrl) && (
+            <p className="text-xs text-amber-600 -mt-2">{t('logoUrlWarning')}</p>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-sm text-slate-600">{t('schoolNameLabel')}</label>

@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { auth, db } from '../../lib/firebase';
 import { translate, type Lang } from '../../lib/i18n';
 import { useAuth } from '../../contexts/AuthContext';
+import appLogo from '../../assets/app-logo.png';
 
 type SchoolOption = { id: string; name: string };
 
@@ -292,7 +293,7 @@ export default function Login() {
         </div>
 
         <div className="text-center space-y-1 -mt-4">
-          <h1 className="text-2xl font-semibold text-slate-900">{translate('loginTitle', lang)}</h1>
+          <img src={appLogo} alt="My School" className="h-16 mx-auto mb-2" />
           <p className="text-sm text-slate-500">{translate('loginSubtitle', lang)}</p>
         </div>
 

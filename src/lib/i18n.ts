@@ -288,6 +288,10 @@ const dict = {
     fr: "Hébergez le logo (ex: imgbb.com) puis collez le lien ici.",
     en: 'Host the logo somewhere (e.g. imgbb.com), then paste the link here.',
   },
+  logoUrlWarning: {
+    fr: "Ce lien ne semble pas pointer directement vers une image (il devrait se terminer par .jpg, .png, etc. et souvent commencer par « i. »). Sur imgbb, utilisez le lien « Direct link », pas le lien de la page.",
+    en: "This link doesn't look like it points directly to an image (it should end in .jpg, .png, etc., and on imgbb often starts with \"i.\"). Use the \"Direct link\" option, not the page link.",
+  },
   schoolNameLabel: { fr: "Nom de l'école", en: 'School name' },
   primaryColorLabel: { fr: 'Couleur principale', en: 'Primary color' },
   secondaryColorLabel: { fr: 'Couleur secondaire', en: 'Secondary color' },
